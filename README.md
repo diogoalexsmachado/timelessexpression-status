@@ -8,7 +8,7 @@ Página de estado dos serviços da Timeless Expression, alimentada inteiramente 
 | --- | --- |
 | [`sites.json`](sites.json) | Lista de websites monitorizados — **o único ficheiro que precisa de editar**. |
 | [`scripts/monitor.mjs`](scripts/monitor.mjs) | Verifica cada site, calcula disponibilidade e regista incidentes. |
-| [`.github/workflows/monitor.yml`](.github/workflows/monitor.yml) | Corre a verificação a cada 5 minutos e publica os dados no branch `data`. |
+| [`.github/workflows/monitor.yml`](.github/workflows/monitor.yml) | Verifica os sites a cada 5 minutos. Cada execução fica ativa ~55 min e lança a seguinte; o cron de 15 em 15 min só serve para reatar a cadeia se ela parar. |
 | [`.github/workflows/pages.yml`](.github/workflows/pages.yml) | Publica a página (`site/`) no GitHub Pages. |
 | [`site/`](site) | A página de estado. Lê os dados em direto do branch `data`. |
 
