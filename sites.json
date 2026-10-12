@@ -14,6 +14,36 @@
       "name": "FIRO",
       "url": "https://firo.pt",
       "description": "Software de marcações"
+    },
+    {
+      "name": "DiogoMachado.PT",
+      "url": "https://diogomachado.pt/",
+      "description": "Website de Consultoria"
+    },
+    {
+      "name": "Nexus",
+      "url": "https://nexus.timelessexpression.pt",
+      "description": "Software de gestão interna"
+    },
+    {
+      "name": "TBK Digital Labs",
+      "url": "https://tbk.digital",
+      "description": "Empresa de Consultoria internacional"
+    },
+    {
+      "name": "Empreender Digital",
+      "url": "https://empreender.digital",
+      "description": "Empresa de aceleração empresarial"
+    },
+    {
+      "name": "Packet",
+      "url": "https://packet.pt",
+      "description": "Empresa de desenvolvimento de Software com recurso a IA"
+    },
+    {
+      "name": "custos.pt",
+      "url": "https://custos.pt",
+      "description": "Software de gestão financeira"
     }
   ]
 }
