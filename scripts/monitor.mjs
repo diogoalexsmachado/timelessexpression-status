@@ -43,7 +43,10 @@ async function probe(site) {
     });
     const ms = Math.round(performance.now() - started);
     const okCode = site.expectedStatus ? site.expectedStatus.includes(res.status) : res.status >= 200 && res.status < 400;
+    // Cloudflare marks responses from its own bot protection with cf-mitigated.
     let error = okCode ? null : `HTTP ${res.status}`;
+    if (!okCode && res.headers.get('cf-mitigated')) error = `Bloqueado pelo Cloudflare (HTTP ${res.status})`;
+    else if (res.status === 403 && res.headers.get('server') === 'cloudflare') error = 'HTTP 403 (provável bloqueio do Cloudflare)';
     if (okCode && site.keyword) {
       const body = await res.text();
       if (!body.includes(site.keyword)) error = `Texto "${site.keyword}" não encontrado`;
