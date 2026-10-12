@@ -53,7 +53,7 @@ async function probe(site) {
     } else {
       await res.body?.cancel();
     }
-    return { up: !error, code: res.status, ms, error };
+    return { up: !error, code: res.status, ms, error, ray: res.headers.get('cf-ray') };
   } catch (err) {
     const ms = Math.round(performance.now() - started);
     const reason = err.name === 'TimeoutError' ? 'Tempo limite excedido' : err.cause?.code || err.message;
@@ -144,7 +144,7 @@ for (const [i, site] of sites.entries()) {
       reason: result.error,
       issue: issue?.number ?? null,
     });
-    console.log(`DOWN  ${site.name}: ${result.error}`);
+    console.log(`DOWN  ${site.name}: ${result.error}${result.ray ? ` (Cloudflare Ray ID ${result.ray})` : ''}`);
   } else if (result.up && open) {
     open.end = now.toISOString();
     if (open.issue) {
@@ -156,7 +156,7 @@ for (const [i, site] of sites.entries()) {
     }
     console.log(`UP    ${site.name}: recovered`);
   } else {
-    console.log(`${result.up ? 'OK   ' : 'DOWN '} ${site.name}: ${result.code} in ${result.ms} ms`);
+    console.log(`${result.up ? 'OK   ' : 'DOWN '} ${site.name}: ${result.code} in ${result.ms} ms${!result.up && result.ray ? ` (Cloudflare Ray ID ${result.ray})` : ''}`);
   }
 
   updated.push({
