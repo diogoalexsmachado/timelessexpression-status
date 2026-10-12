@@ -1,20 +1,18 @@
 name: Monitor
 
-# GitHub's cron is best-effort: on many repos "*/5" fires late or not at all.
-# So each run stays alive for ~55 minutes, checks every 5 minutes, and then
-# dispatches the next run itself. The cron is only a watchdog that restarts
-# the chain if it ever breaks (an extra trigger just waits in the queue).
+# Triggered every 5 minutes by an external scheduler (cron-job.org) through the
+# workflow_dispatch API, because GitHub's own cron is best-effort and often
+# fires late or not at all. The schedule below is only a fallback.
 
 on:
-  schedule:
-    - cron: "*/15 * * * *"
   workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *"
   push:
     branches: [main]
-    paths: [.github/workflows/monitor.yml, scripts/monitor.mjs]
+    paths: [sites.json, scripts/monitor.mjs, .github/workflows/monitor.yml]
 
 permissions:
-  actions: write
   contents: write
   issues: write
 
@@ -22,14 +20,10 @@ concurrency:
   group: monitor
   cancel-in-progress: false
 
-env:
-  INTERVAL_SECONDS: 300
-  RUN_SECONDS: 3300
-
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 70
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 
@@ -45,36 +39,18 @@ jobs:
         run: |
           mkdir .data && cd .data
           git init -q
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
           if git fetch -q --depth=1 origin data; then git checkout -q FETCH_HEAD -- .; fi
 
-      - name: Check sites every 5 minutes
+      - name: Check sites
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/monitor.mjs sites.json .data
+
+      - name: Publish data
+        working-directory: .data
         run: |
-          end=$((SECONDS + RUN_SECONDS))
-          while :; do
-            started=$SECONDS
-            # Pick up edits to sites.json without waiting for the next run.
-            git fetch -q --depth=1 origin main && git checkout -q FETCH_HEAD -- sites.json || true
-
-            node scripts/monitor.mjs sites.json .data || echo "::warning::Check failed"
-
-            ( cd .data
-              git update-ref -d HEAD 2>/dev/null || true
-              git add -A
-              git commit -q -m "Update status data"
-              git push -q -f origin HEAD:refs/heads/data ) || echo "::warning::Publishing data failed"
-
-            next=$((started + INTERVAL_SECONDS))
-            [ "$next" -ge "$end" ] && break
-            sleep $((next - SECONDS > 0 ? next - SECONDS : 0))
-          done
-
-      - name: Start next run
-        if: success() || failure()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh workflow run monitor.yml --repo "${{ github.repository }}" --ref main
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Update status data"
+          git push -q -f origin HEAD:refs/heads/data
