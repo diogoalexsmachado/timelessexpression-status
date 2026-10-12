@@ -8,6 +8,13 @@
 //   keyword         text that must appear in the response body
 //   timeout         ms before giving up (default 15000)
 //   degradedAfter   ms above which the site is shown as "degraded" (default 3000)
+//   checkUrl        URL to probe instead of `url` (e.g. a health endpoint like /up)
+//   allowCloudflareChallenge
+//                   count a Cloudflare bot challenge as "up" — for zones with Bot
+//                   Fight Mode, which challenges GitHub's runner IPs and cannot be
+//                   skipped on the free plan. A challenge proves DNS and the
+//                   Cloudflare edge answer; unchallenged checks still reach the
+//                   origin. Challenged checks are left out of response times.
 //
 // When GITHUB_TOKEN and GITHUB_REPOSITORY are set, an issue is opened when a
 // site goes down and closed when it recovers (GitHub emails watchers).
@@ -35,7 +42,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function probe(site) {
   const started = performance.now();
   try {
-    const res = await fetch(site.url, {
+    const res = await fetch(site.checkUrl || site.url, {
       method: site.method || 'GET',
       redirect: 'follow',
       headers: { 'user-agent': USER_AGENT, 'cache-control': 'no-cache' },
@@ -45,6 +52,11 @@ async function probe(site) {
     const okCode = site.expectedStatus ? site.expectedStatus.includes(res.status) : res.status >= 200 && res.status < 400;
     // Cloudflare marks responses from its own bot protection with cf-mitigated.
     let error = okCode ? null : `HTTP ${res.status}`;
+    const challenged = !okCode && res.headers.get('cf-mitigated') === 'challenge';
+    if (challenged && site.allowCloudflareChallenge) {
+      await res.body?.cancel();
+      return { up: true, challenged: true, code: res.status, ms: null, error: null };
+    }
     if (!okCode && res.headers.get('cf-mitigated')) error = `Bloqueado pelo Cloudflare (HTTP ${res.status})`;
     else if (res.status === 403 && res.headers.get('server') === 'cloudflare') error = 'HTTP 403 (provável bloqueio do Cloudflare)';
     if (okCode && site.keyword) {
@@ -119,10 +131,13 @@ for (const [i, site] of sites.entries()) {
   const status = !result.up ? 'down' : result.ms > (site.degradedAfter || 3_000) ? 'degraded' : 'up';
 
   const daily = Object.fromEntries(Object.entries(prev.daily || {}).filter(([d]) => d >= oldestDay));
-  const day = (daily[today] ||= { n: 0, up: 0, ms: 0 });
+  // t = checks with a measured response time (ms / t is the daily average).
+  const day = (daily[today] ||= { n: 0, up: 0, ms: 0, t: 0 });
+  day.t ??= day.up;
   day.n += 1;
-  if (result.up) {
-    day.up += 1;
+  if (result.up) day.up += 1;
+  if (result.up && result.ms != null) {
+    day.t += 1;
     day.ms += result.ms;
   }
 
@@ -150,11 +165,13 @@ for (const [i, site] of sites.entries()) {
     if (open.issue) {
       const mins = Math.max(1, Math.round((nowMs - Date.parse(open.start)) / 60_000));
       await github(`/issues/${open.issue}/comments`, 'POST', {
-        body: `🟢 **${site.name}** recuperou após ${mins} min (HTTP ${result.code}, ${result.ms} ms).`,
+        body: `🟢 **${site.name}** recuperou após ${mins} min (${result.challenged ? 'o Cloudflare responde com desafio anti-bot' : `HTTP ${result.code}, ${result.ms} ms`}).`,
       });
       await github(`/issues/${open.issue}`, 'PATCH', { state: 'closed' });
     }
     console.log(`UP    ${site.name}: recovered`);
+  } else if (result.challenged) {
+    console.log(`OK    ${site.name}: desafio do Cloudflare (contado como operacional)`);
   } else {
     console.log(`${result.up ? 'OK   ' : 'DOWN '} ${site.name}: ${result.code} in ${result.ms} ms${!result.up && result.ray ? ` (Cloudflare Ray ID ${result.ray})` : ''}`);
   }

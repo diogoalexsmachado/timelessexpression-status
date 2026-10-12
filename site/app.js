@@ -71,7 +71,7 @@
     }
 
     function avgResponse(site) {
-        const ok = (site.recent || []).filter((x) => x[2]);
+        const ok = (site.recent || []).filter((x) => x[2] && x[1] != null);
         return ok.length ? ok.reduce((s, x) => s + x[1], 0) / ok.length : null;
     }
 
@@ -165,7 +165,7 @@
 
         const W = 600, H = 120;
         const t0 = pts[0][0], t1 = pts[pts.length - 1][0];
-        const ok = pts.filter((p) => p[2]);
+        const ok = pts.filter((p) => p[2] && p[1] != null);
         const max = Math.max(200, ...ok.map((p) => p[1])) * 1.15;
         const x = (t) => ((t - t0) / Math.max(1, t1 - t0)) * W;
         const y = (v) => H - (v / max) * H;
@@ -173,6 +173,7 @@
         let line = '', started = false;
         for (const p of pts) {
             if (!p[2]) { started = false; continue; }
+            if (p[1] == null) continue;
             line += `${started ? 'L' : 'M'}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`;
             started = true;
         }
@@ -223,7 +224,7 @@
                     </div>
                     <div class="svc-meta">
                         <span class="pill">${STATUS_LABEL[s.status]}</span>
-                        <span class="svc-ms" title="${s.error ? esc(s.error) : 'Último tempo de resposta'}">${s.status === 'down' ? esc(s.error || 'Sem resposta') : ms(s.responseTime)}</span>
+                        <span class="svc-ms" title="${s.error ? esc(s.error) : 'Último tempo de resposta'}">${s.status === 'down' ? esc(s.error || 'Sem resposta') : s.responseTime == null ? 'via Cloudflare' : ms(s.responseTime)}</span>
                     </div>
                 </div>
                 <div class="bars" aria-label="Disponibilidade diária">${bars}</div>
@@ -310,7 +311,7 @@
         const d = site.daily[key];
         const label = dayLabelFmt.format(new Date(key + 'T12:00:00Z'));
         const body = d && d.n
-            ? `<span>${pct((d.up / d.n) * 100)} disponível</span><span>${d.up ? ms(d.ms / d.up) + ' de média' : 'Sem respostas'}</span>${d.n - d.up ? `<span>${d.n - d.up} falha${d.n - d.up > 1 ? 's' : ''} em ${d.n} verificações</span>` : ''}`
+            ? `<span>${pct((d.up / d.n) * 100)} disponível</span><span>${(d.t ?? d.up) ? ms(d.ms / (d.t ?? d.up)) + ' de média' : d.up ? 'Tempo de resposta indisponível' : 'Sem respostas'}</span>${d.n - d.up ? `<span>${d.n - d.up} falha${d.n - d.up > 1 ? 's' : ''} em ${d.n} verificações</span>` : ''}`
             : '<span>Sem dados</span>';
         const r = bar.getBoundingClientRect();
         showTip(`<b>${label}</b>${body}`, r.left + r.width / 2, r.top);
@@ -342,7 +343,7 @@
         const cx = ((best[0] - t0) / Math.max(1, t1 - t0)) * 600;
         const cl = chart.querySelector('.cursor-line');
         cl.setAttribute('x1', cx); cl.setAttribute('x2', cx);
-        showTip(`<b>${timeFmt.format(new Date(best[0]))}</b><span>${best[2] ? ms(best[1]) : 'Falhou'}</span>`,
+        showTip(`<b>${timeFmt.format(new Date(best[0]))}</b><span>${!best[2] ? 'Falhou' : best[1] == null ? 'Desafio do Cloudflare' : ms(best[1])}</span>`,
             rect.left + (cx / 600) * rect.width, rect.top);
     });
 

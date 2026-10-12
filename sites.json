@@ -13,7 +13,9 @@
     {
       "name": "FIRO",
       "url": "https://firo.pt",
-      "description": "Software de marcações"
+      "description": "Software de marcações",
+      "checkUrl": "https://firo.pt/up",
+      "allowCloudflareChallenge": true
     },
     {
       "name": "DiogoMachado.PT",
