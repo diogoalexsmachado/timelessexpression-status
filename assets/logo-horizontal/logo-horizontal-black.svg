@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1617.03 370.63">
+  <defs>
+    <style>
+      .cls-1 {
+        font-size: 164.17px;
+      }
+
+      .cls-1, .cls-2, .cls-3 {
+        fill: #231f20;
+      }
+
+      .cls-1, .cls-3 {
+        font-family: Nexa-Heavy, Nexa;
+        font-weight: 800;
+      }
+
+      .cls-3 {
+        font-size: 210.3px;
+      }
+    </style>
+  </defs>
+  <text class="cls-1" transform="translate(519.42 324.01)"><tspan x="0" y="0">EXPRESSION</tspan></text>
+  <text class="cls-3" transform="translate(527.84 178.75)"><tspan x="0" y="0">TIMELESS</tspan></text>
+  <rect class="cls-2" x="286.62" y="127.98" width="219.23" height="94.76"/>
+  <rect class="cls-2" x="286.77" y="248.46" width="219.23" height="94.76"/>
+  <rect class="cls-2" x="91.82" y="128.02" width="64.45" height="215.55"/>
+  <polygon class="cls-2" points="505.85 23.81 0 23.81 0 103.27 181.94 103.27 181.94 343.01 261.26 343.01 261.26 103.27 505.85 103.27 505.85 23.81"/>
+</svg>

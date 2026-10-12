@@ -1,0 +1,19 @@
+{
+  "sites": [
+    {
+      "name": "Timeless Expression",
+      "url": "https://timelessexpression.pt",
+      "description": "Website institucional"
+    },
+    {
+      "name": "Luminos",
+      "url": "https://luminos.pt",
+      "description": "Fotografia & Eventos"
+    },
+    {
+      "name": "FIRO",
+      "url": "https://firo.pt",
+      "description": "Software de marcações"
+    }
+  ]
+}

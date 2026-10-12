@@ -1,0 +1,52 @@
+name: Monitor
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [sites.json, scripts/monitor.mjs]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: monitor
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Status data lives on the `data` branch as a single, force-pushed commit,
+      # so frequent checks never bloat the history of main.
+      - name: Fetch current data
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir .data && cd .data
+          git init -q
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
+          if git fetch -q --depth=1 origin data; then git checkout -q FETCH_HEAD -- .; fi
+
+      - name: Check sites
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/monitor.mjs sites.json .data
+
+      - name: Publish data
+        working-directory: .data
+        run: |
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Update status data"
+          git push -q -f origin HEAD:refs/heads/data
